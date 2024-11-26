@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PAWS V2</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Monofett&family=Chicle&family=Tinos&family=Faster+One&family=Roboto&family=Montserrat:wght@600&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      :root {
+        --primary: #501214;
+        --secondary: #6a5638;
+        --accent: #d2b650;
+        --background: #f8f9fa;
+        --text: #2d3748;
+        --light: #f4f1ed;
+        --navbar-color: var(--primary);
+        --nav-button-color: var(--accent);
+        --nav-button-color-rgb: 210, 182, 80;
+      }
+
+      body {
+        font-family: "Roboto", sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+        background-color: var(--secondary);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      .navbar {
+        width: 100vw;
+        margin: 0;
+        padding: 1rem 0;
+        background-color: var(--navbar-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        z-index: 999;
+        transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(10px);
+      }
+
+      .navbar-nav {
+        flex-grow: 1;
+      }
+
+      .letter {
+        color: var(--accent);
+        text-shadow: 0 0 10px rgba(var(--nav-button-color-rgb), 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: 0.1em;
+        font-family: "Montserrat", sans-serif;
+      }
+
+      .letter:hover {
+        text-shadow: 0 0 15px rgba(var(--nav-button-color-rgb), 0.5);
+        transform: scale(1.05);
+      }
+
+      .nav-buttons {
+        background: none;
+        border: 2px solid var(--accent);
+        color: var(--accent);
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 300;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        position: relative;
+        overflow: hidden;
+      }.nav-buttons:before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background-color: var(--nav-button-color);
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        transition: width 0.6s ease, height 0.6s ease;
+        z-index: -1;
+      }
+
+      .nav-buttons:hover:before {
+        width: 300px;
+        height: 300px;
+      }
+
+      .nav-buttons:hover {
+        color: var(--primary);
+        transform: translateY(-2px);
+      }
+
+      .landmarks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 2rem;
+        max-width: 1400px;
+        margin: 2rem auto;
+        padding: 0 2rem;
+      }
+
+      .landmark {
+        position: relative;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .landmark:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      }
+
+      .landmark img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+      }
+
+      .landmark-details {
+        padding: 1.5rem;
+      }
+
+      .landmark-name {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .landmark-name a {
+        color: var(--primary);
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+
+      .landmark-name a:hover {
+        color: var(--accent);
+      }
+
+      .landmark-location {
+        font-size: 1rem;
+        color: #666;
+      }
+
+      .location-number {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background-color: var(--primary);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 1.2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+      }
+
+      .search-bar {
+        margin: 2rem auto;
+        text-align: center;
+        max-width: 600px;
+      }
+
+      .search-bar input {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+        border: none;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.3s ease;
+      }
+
+      .search-bar input:focus {
+        outline: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      }
+
+      .sort-bar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: var(--secondary);
+        padding: 1rem;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      #sort {
+        padding: 0.8rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        background: white;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }#sort:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      #map {
+        width: 90%;
+        max-width: 1200px;
+        height: 400px;
+        margin: 2rem auto;
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        transition: transform 0.3s ease;
+      }
+
+      .detail {
+        max-width: 1000px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .detail img {
+        width: 100%;
+        max-height: 500px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin: 1rem 0;
+      }
+
+      .detail h2 {
+        font-size: 2.5rem;
+        color: var(--primary);
+        margin: 0 0 1rem;
+      }
+
+      .detail p {
+        font-size: 1.1rem;
+        color: #4a5568;
+        line-height: 1.8;
+        margin: 1rem 0;
+      }
+
+      .directions {
+        background-color: #f8f9fa;
+        padding: 1.8rem;
+        border-radius: 12px;
+        border-left: 6px solid var(--primary);
+        margin: 2rem 0;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 1.15rem;
+        line-height: 1.6;
+        color: var(--primary);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .directions::before {
+        content: "NEXT STOP:";
+        display: block;
+        font-weight: 600;
+        font-size: 0.9rem;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.5rem;
+        color: var(--secondary);
+      }
+
+      .directions .destination {
+        font-weight: 600;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        color: var(--primary);
+      }
+
+      .directions ul {
+        list-style-type: none;
+        padding-left: 0;
+        margin: 0;
+      }
+
+      .directions li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .directions li::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: var(--accent);
+        font-size: 1.2em;
+        line-height: 1;
+      }
+
+      .directions .walk-time {
+        margin-top: 1rem;
+        font-style: italic;
+        color: var(--secondary);
+        font-size: 0.9em;
+      }
+
+      .navigation-buttons {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+
+      .nav-button {
+        padding: 1rem 2rem;
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        font-weight: 500;
+        flex: 1;
+        text-align: center;
+        max-width: 200px;
+      }
+
+      .nav-button:hover {
+        background-color: #631518;
+        transform: translateY(-2px);
+      }
+
+      .nav-button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      @media (max-width: 768px) {
+        .letter {
+          font-size: 1.5rem;
+        }
+
+        .landmarks-grid {
+          grid-template-columns: 1fr;
+          padding: 0 1rem;
+        }
+
+        .search-bar input {
+          width: 90%;
+        }
+
+        .detail {
+          margin: 1rem;
+          padding: 1.5rem;
+        }
+
+        .navigation-buttons {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .nav-button {
+          max-width: none;
+        }
+      }
+    </style>
+  </head><body>
+    <nav class="navbar navbar-expand-lg navbar-light position-relative">
+      <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarContent">
+          <ul class="navbar-nav w-100 justify-content-center align-items-center">
+            <li class="nav-item mx-4">
+              <h1 class="letter">PAWS ON TOUR</h1>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div id="app"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-router@3"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      // Your data array goes here
+      const data = [
+        {
+          name: "Glade Amphitheater",
+          location: "West Campus",
+          desc: "Now abandoned (and occasionally used), this amphitheater was once home to band practices and outdoor theatrical performances. Check out the hidden treehouse, too!",
+          directiontonext:
+            "STUDENT REC CENTER. To get there: Head North-East down Llano Cir., take a left on Academy St., and the Student Rec Center will be on your left. Approx walk time: 6 mins.",
+          imageName: "glade.jpg",
+          order: 1,
+          lat: 29.88652,
+          lon: -97.95006,
+        },
+        {
+          name: "Harris Dining Hall",
+          location: "West Campus",
+          desc: "Texas State's biggest dining hall. Harris offers breakfast, lunch and dinner, with multiple buffet lines open all featuring different cuisine.",
+          directiontonext:
+            "STUDENT REC CENTER. To get there: Exit Harris through the doors you came in, walk left out of the doors and continue straight up the stairs. The Student Rec Center will be on your left. Approx walk time: 3 mins.",
+          imageName: "harris.jpg",
+          order: 2,
+          lat: 29.8881,
+          lon: -97.95118,
+        },
+        {
+          name: "Student Rec Center",
+          location: "West Campus",
+          desc: "Featuring four indoor basketball/volleyball courts, an indoor 1/4 mile track, and more machines and squat racks than you can imagine, the Student Rec Center is where a lot of TXST students come to workout and unwind after a long day. Swing by Shake Smart on the way out and get a delicious protein shake with Bobcat Bucks!",
+          directiontonext:
+            "LBJ STUDENT CENTER. To get there: Head down W Sessom Dr., turn right on N Commanche St., and then left on Student Center Dr. The Student Rec Center will be on your right. Approx walk time: 10 mins.",
+          imageName: "rec.jpg",
+          order: 3,
+          lat: 29.88876,
+          lon: -97.95103,
+        },
+        {
+          name: "LBJ Student Center",
+          location: "Central Campus",
+          desc: "This is the main hub on campus. Most buses drop off/pick up students here, and it is also home to Chick-fil-A, Tu Taco, and even more restaurants! Check out the first floor and see George's, a billiards lounge where students can also socialize and study.",
+          directiontonext:
+            "THE MALL. To get there: Head through the front entrance of the LBJ Student Center, go down the stairs to the second floor, and then walk straight out the back doors. Go down the steps, and you'll arrive at The Mall. Approx walk time: 1 min.",
+          imageName: "lbj.jpg",
+          order: 4,
+          lat: 29.8893,
+          lon: -97.94399,
+        },
+        {
+          name: "The Mall",
+          location: "Central Campus",
+          desc: "Located by LBJ Student Center and the center of campus, you'll most likely walk through this area every day.",
+          directiontonext:
+            "JONES DINING HALL. To get there: Walk straight down the stairs towards the circular opening. There will be two staircases on your right heading down from this level, you'll want to take the one further from the LBJ Student center. Go down this staircase (which should turn to the left) and straight ahead will be Jones Dining Hall. Approx walk time: 3 mins.",
+          imageName: "mall.jpg",
+          order: 5,
+          lat: 29.88872,
+          lon: -97.94398,
+        },
+        {
+          name: "Jones Dining Hall",
+          location: "South-Central Campus",
+          desc: "One of TXST's dining halls, featuring six different restaurants to choose from.",
+          directiontonext:
+            "ALKEK LIBRARY. To get there: Inside of Jones Dining Hall, coming from The Mall, you should have arrived by Create Subs and Panda Express. Head down the dining hall towards Asado, Wing It and Fruiteria. Take the exit through the doors by the outdoor seated dining area. Go through the big arch and walk straight past the intersecting pathway on your left. On your left will be Alkek Library. Approx walk time: 4 mins.",
+          imageName: "jones.jpg",
+          order: 6,
+          lat: 29.88767,
+          lon: -97.94314,
+        },
+        {
+          name: "Alkek Library",
+          location: "Central Campus",
+          desc: "Home to the Wittliff Collections and study resources.",
+          directiontonext:
+            "THE QUAD. To get there: Exit the Alkek Library through the first floor doors in 'Alkek One'. Go past the elevators and exit. Walk down the stairs and go straight towards the long pathway with lots of traffic. This is the Quad. Total walk time: 2 mins. ",
+          imageName: "alkek.jpg",
+          order: 7,
+          lat: 29.88878,
+          lon: -97.94314,
+        },
+        {
+          name: "The Quad",
+          location: "Central Campus",
+          desc: "The busiest hub of student activity on campus.",
+          directiontonext:
+            "TAYLOR-MURPHY HISTORY (a.k.a TMH) BUILDING COURTYARD. To get there: Keep going straight down The Quad, towards Old Main (The Hogwarts-looking building with a red roof), and when you pass The Stallions statue, the TMH building will be on your left. Approx walk time: 2 mins.",
+          imageName: "quad.jpg",
+          order: 8,
+          lat: 29.88911,
+          lon: -97.94142,
+        },
+        {
+          name: "TMH Building Courtyard",
+          location: "North-Central Campus",
+          desc: "This courtyard features beautiful terracotta tiles and a serene landscape. This is definitely a beautiful place to study before your exams!",
+          directiontonext:
+            "COMMONS DINING HALL. To get there: Keep walking towards Old Main (The Hogwarts-looking building with a red roof), and the Bobcat Statue will be on your left, where the large sidewalk is. Approx walk time: 1 min.",
+          imageName: "tmh.jpg",
+          order: 9,
+          lat: 29.88951,
+          lon: -97.94161,
+        },
+        {
+          name: "Commons Dining Hall",
+          location: "Central Campus",
+          desc: "Another one of Texas State's dining halls. Similar to Harris Dining Hall, Commons serves multiple buffet lines daily, all featuring different cuisine.",
+          directiontonext:
+            "THE DEN. To get there: Exit and turn right. Continue straight towards the building with the open-layout slanted roof. The entrance to The Den will be to the right through the sliding glass doors. Approx walk time: 3 mins.",
+          imageName: "commons.jpg",
+          order: 10,
+          lat: 29.88812,
+          lon: -97.94024,
+        },
+        {
+          name: "The Den",
+          location: "East Campus",
+          desc: "The third and final dining hall at Texas State. This dining hall offers different restaurant's as well as a bubble tea lounge. Upstairs, you can find Einstein Bagels.",
+          directiontonext:
+            "BOBCAT STATUE. To get there: Walk straight past Flowers Hall and the fountain. Turn right and continue straight to the Bobcat Statue. Approx walk time: 3 mins.",
+          imageName: "den.jpg",
+          order: 11,
+          lat: 29.88864,
+          lon: -97.93912,
+        },
+        {
+          name: "Bobcat Statue",
+          location: "North-Central Campus",
+          desc: "Famous statue of a bobcat chasing its prey.",
+          directiontonext:
+            "LBJ STATUE. To get there: Head towards the Hogwarts-looking building with a red roof. Walk towards all of the stairs straight ahead, and you'll arrive the LBJ Statue. Approx walk time: 2 mins.",
+          imageName: "catstatue.jpg",
+          order: 12,
+          lat: 29.88912,
+          lon: -97.94105,
+        },
+        {
+          name: "LBJ Statue",
+          location: "North-Central Campus",
+          desc: "Famous statue of President Lyndon B. Johnson. Traditionally, students shake LBJ's hand before their exams for good luck!",
+          directiontonext:
+            "OLD MAIN. To get there: Head straight up the stairs towards the Hogwarts-looking building with a red roof. Walk up all of the stairs straight ahead, and you'll arrive the oldest building on campus; Old Main. Approx walk time: 1 min.",
+          imageName: "lbjstatue.jpg",
+          order: 13,
+          lat: 29.88923,
+          lon: -97.94034,
+        },
+        {
+          name: "Old Main",
+          location: "Hilltop",
+          desc: "The iconic red-roofed building from 1903.",
+          directiontonext:
+            "THE HAMMOCKS. To get there: Head towards Old Main and turn left once you get there. There will be a staircase heading down to State St., take it. Go to your right (East) down State St., and turn left after the first building. Go down the stairs, and the Agriculture building will be straight ahead. Head towards the densely forested area on your right and then it's up to you to find the hidden hammocks! Approx walk time: 5 mins.",
+          imageName: "oldmain.jpg",
+          order: 14,
+          lat: 29.88938,
+          lon: -97.9389,
+        },
+        {
+          name: "The Hammocks",
+          location: "East Campus",
+          desc: "If you can manage to find these hidden hammocks beneath the overgrown vines of the agriculture building, you'll have trouble getting yourself to leave!",
+          directiontonext:
+            "SEWELL PARK. To get there: Find your way from the hammocks downhill towards the very busy Sessom Dr. Head to the right (East) along the sidewalk all the way until you reach Aquarena Springs Dr. Make your way across the crosswalk and Sewell Park will be on your right. Approx walk time: 13 mins.",
+          imageName: "hammocks.jpg",
+          order: 15,
+          lat: 29.89049,
+          lon: -97.93856,
+        },
+        {
+          name: "Sewell Park",
+          location: "Riverfront",
+          desc: "A relaxing spot along the San Marcos River.",
+          directiontonext:
+            "BOBCAT STADIUM. To get there: Head North-East along Aquarena Spring Dr. (towards I-35), and cross Charles Austin Dr. Keep going straight and Bobcat Stadium will be on your right! Approx walk time: 12 mins.",
+          imageName: "sewell.jpg",
+          order: 16,
+          lat: 29.8835,
+          lon: -97.9426,
+        },
+        {
+          name: "Bobcat Stadium",
+          location: "North Campus",
+          desc: "The heart of athletics at Texas State.",
+          directiontonext:
+            "THE MEADOWS CENTER. To get there: Cross under Aquarena Springs Dr. and turn left on Post Rd. Turn right on San Marcos Springs Dr., and continue straight. The Meadows Center will be on your right. Approx walk time: 10 mins.",
+          imageName: "stadium.jpg",
+          order: 17,
+          lat: 29.89118,
+          lon: -97.92556,
+        },
+        {
+          name: "The Meadows Center",
+          location: "Riverfront",
+          desc: "Located slightly North-East off campus, The Meadows Center offers free information about the local ecosystem and its fragility. Catch a glass-bottom boat tour and see the beautiful San Marcos River in all its glory! Sometimes, you can even see divers cleaning the river's bed during the tours.",
+          directiontonext: "Walk back towards campus to the Quad.",
+          imageName: "meadow.jpg",
+          order: 18,
+          lat: 29.89403,
+          lon: -97.92976,
+        },
+      ];
+
+      function parseDirections(directionString) {
+        const [destination, ...rest] = directionString.split('. To get there: ');
+        const walkTimeMatch = rest.join('. ').match(/Approx walk time: (.+)$/);
+        const walkTime = walkTimeMatch ? walkTimeMatch[1] : '';
+        const steps = rest.join('. ')
+          .replace(/Approx walk time: .+$/, '')
+          .split(', ')
+          .map(step => step.trim())
+          .filter(step => step);
+        
+        return {
+          destination: destination,
+          steps: steps,
+          walkTime: walkTime
+        };
+      }
+
+      const Landmark = {
+        props: ["name", "image", "location", "desc", "directiontonext", "order"],
+        template: `
+          <div class="landmark">   
+              <div class="location-number">{{ order }}</div>   
+              <router-link :to="'/landmark/' + encodeURIComponent(name)">
+                  <img :src="image" :alt="name" />
+              </router-link>
+              <div class="landmark-details">
+                  <div class="landmark-name">
+                      <router-link :to="'/landmark/' + encodeURIComponent(name)">{{ name }}</router-link>
+                  </div>
+                  <div class="landmark-location">{{ location }}</div>
+              </div>
+          </div>
+        `
+      };
+
+      const LandmarkDetail = {
+        data() {
+          return {
+            landmark: null,
+            nextLandmark: null,
+            prevLandmark: null
+          };
+        },
+        computed: {
+          parsedDirections() {
+            if (!this.landmark) return null;
+            return parseDirections(this.landmark.directiontonext);
+          }
+        },
+        methods: {
+          findAdjacentLandmarks() {
+            const currentIndex = data.findIndex(
+              (l) => l.name === this.landmark.name
+            );
+            this.prevLandmark = currentIndex > 0 ? data[currentIndex - 1] : null;
+            this.nextLandmark = currentIndex < data.length - 1 ? data[currentIndex + 1] : null;
+          },
+          navigateToLandmark(landmark) {
+            if (landmark) {
+              this.$router.push(`/landmark/${encodeURIComponent(landmark.name)}`);
+            }
+          }
+        },
+        created() {
+          const name = decodeURIComponent(this.$route.params.name);
+          this.landmark = data.find((l) => l.name === name);
+          if (this.landmark) {
+            this.findAdjacentLandmarks();
+          }
+        },
+        watch: {
+          $route(to, from) {
+            const name = decodeURIComponent(to.params.name);
+            this.landmark = data.find((l) => l.name === name);
+            if (this.landmark) {
+              this.findAdjacentLandmarks();
+            }
+          }
+        },
+        template: `
+            <div v-if="landmark" class="detail">
+                <h2>{{ landmark.name }}</h2>
+                <img :src="landmark.imageName" :alt="landmark.name" />
+                <p><strong>Location:</strong> {{ landmark.location }}</p>
+                <p>{{ landmark.desc }}</p>
+                <div class="directions" v-if="parsedDirections">
+                    <div class="destination">{{ parsedDirections.destination }}</div>
+                    <ul>
+                        <li v-for="step in parsedDirections.steps" :key="step">
+                            {{ step }}
+                        </li>
+                    </ul>
+                    <div class="walk-time" v-if="parsedDirections.walkTime">
+                        Approximate walk time: {{ parsedDirections.walkTime }}
+                    </div>
+                </div>
+                
+                <div class="navigation-buttons">
+                    <button 
+                      class="nav-button" 
+                      @click="navigateToLandmark(prevLandmark)"
+                      :disabled="!prevLandmark"
+                    >
+                      Previous Location
+                    </button>
+                    <router-link to="/" class="nav-button">Back to List</router-link>
+                    <button 
+                      class="nav-button" 
+                      @click="navigateToLandmark(nextLandmark)"
+                      :disabled="!nextLandmark"
+                    >
+                      Next Location
+                    </button>
+                </div>
+            </div>
+            <div v-else class="detail">
+                Landmark not found
+            </div>
+        `
+      };
+
+      const LandmarkList = {
+        data() {
+          return {
+            searchQuery: "",
+            sortCriteria: "order",
+            landmarks: data
+          };
+        },
+        computed: {
+          filteredLandmarks() {
+            return this.landmarks
+              .filter(landmark =>
+                landmark.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                landmark.location.toLowerCase().includes(this.searchQuery.toLowerCase())
+              )
+              .sort((a, b) => {
+                switch (this.sortCriteria) {
+                  case "order":
+                    return a.order - b.order;
+                  case "name":
+                    return a.name.localeCompare(b.name);
+                  case "location":
+                    return a.location.localeCompare(b.location);
+                  default:
+                    return 0;
+                }
+              });
+          }
+        },
+        template: `
+          <div> 
+              <div class="sort-bar">
+                  <label for="sort">Sort By: </label>
+                  <select id="sort" v-model="sortCriteria">
+                      <option value="order">Walking Order</option>
+                      <option value="name">Alphabetical</option>
+                      <option value="location">Location</option>
+                  </select>
+              </div>
+
+              <div class="search-bar">
+                  <input 
+                    v-model="searchQuery" 
+                    type="text" 
+                    placeholder="Search landmarks or locations..." 
+                  />
+              </div>
+
+              <div class="landmarks-grid">
+                  <landmark 
+                    v-for="landmark in filteredLandmarks" 
+                    :key="landmark.name"
+                    :name="landmark.name"
+                    :image="landmark.imageName"
+                    :location="landmark.location"
+                    :desc="landmark.desc"
+                    :directiontonext="landmark.directiontonext"
+                    :order="landmark.order"
+                  ></landmark>
+              </div>
+
+              <div id="map"></div>
+          </div>
+        `,
+        components: {
+          landmark: Landmark
+        },
+        mounted() {
+          const map = L.map("map").setView([29.8885, -97.94], 14);
+
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          }).addTo(map);
+
+          this.landmarks.forEach((landmark) => {
+            L.marker([landmark.lat, landmark.lon])
+              .addTo(map)
+              .bindPopup(`<b>${landmark.name}</b><br>${landmark.location}`)
+              .openPopup();
+          });
+        }
+      };
+
+      const routes = [
+        { path: "/", component: LandmarkList },
+        { path: "/landmark/:name", component: LandmarkDetail }
+      ];
+
+      const router = new VueRouter({
+        routes
+      });
+
+      new Vue({
+        el: "#app",
+        router,
+        template: `
+            <div>
+                <router-view></router-view>
+            </div>
+        `
+      });
+    </script>
+  </body>
+</html>
